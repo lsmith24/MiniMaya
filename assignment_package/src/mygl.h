@@ -6,6 +6,10 @@
 #include <shaderprogram.h>
 #include <scene/squareplane.h>
 #include "camera.h"
+#include "mesh.h"
+#include "edgedisplay.h"
+#include "facedisplay.h"
+#include "vtxdisplay.h"
 
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLShaderProgram>
@@ -34,8 +38,25 @@ public:
     void resizeGL(int w, int h);
     void paintGL();
 
+    Mesh mesh;
+    EdgeDisplay m_edgeDisplay;
+    VtxDisplay m_vtxDisplay;
+    FaceDisplay m_faceDisplay;
+
+
 protected:
     void keyPressEvent(QKeyEvent *e);
+
+signals:
+    void sendFace(QListWidgetItem* f);
+    void sendEdge(QListWidgetItem* he);
+    void sendVtx(QListWidgetItem* v);
+    void nKey(QListWidgetItem* item);
+    void mKey(QListWidgetItem* item);
+    void fKey(QListWidgetItem* item);
+    void vKey(QListWidgetItem* item);
+    void hsKey(QListWidgetItem* item);
+    void hKey(QListWidgetItem* item);
 };
 
 

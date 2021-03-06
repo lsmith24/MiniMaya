@@ -10,7 +10,8 @@ MyGL::MyGL(QWidget *parent)
     : OpenGLContext(parent),
       m_geomSquare(this),
       m_progLambert(this), m_progFlat(this),
-      m_glCamera()
+      m_glCamera(), mesh(this), m_edgeDisplay(this),
+      m_vtxDisplay(this), m_faceDisplay(this)
 {
     setFocusPolicy(Qt::StrongFocus);
 }
@@ -20,6 +21,7 @@ MyGL::~MyGL()
     makeCurrent();
     glDeleteVertexArrays(1, &vao);
     m_geomSquare.destroy();
+    mesh.destroy();
 }
 
 void MyGL::initializeGL()
@@ -47,13 +49,27 @@ void MyGL::initializeGL()
     glGenVertexArrays(1, &vao);
 
     //Create the instances of Cylinder and Sphere.
-    m_geomSquare.create();
+ //   m_geomSquare.create();
 
     // Create and set up the diffuse shader
     m_progLambert.create(":/glsl/lambert.vert.glsl", ":/glsl/lambert.frag.glsl");
     // Create and set up the flat lighting shader
     m_progFlat.create(":/glsl/flat.vert.glsl", ":/glsl/flat.frag.glsl");
 
+    mesh.makeCube();
+    mesh.create();
+
+    for(uPtr<Face> &f : mesh.faces) {
+        emit sendFace(f.get());
+    }
+
+    for(uPtr<HalfEdge> &he : mesh.edges) {
+        emit sendEdge(he.get());
+    }
+
+    for(uPtr<Vertex> &v : mesh.vertices) {
+        emit sendVtx(v.get());
+    }
 
     // We have to have a VAO bound in OpenGL 3.2 Core. But if we're not
     // using multiple VAOs, we can just bind one once.
@@ -91,17 +107,39 @@ void MyGL::paintGL()
     //Note that we have to transpose the model matrix before passing it to the shader
     //This is because OpenGL expects column-major matrices, but you've
     //implemented row-major matrices.
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-2,0,0)) * glm::rotate(glm::mat4(), 0.25f * 3.14159f, glm::vec3(0,1,0));
+ //   glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-2,0,0)) * glm::rotate(glm::mat4(), 0.25f * 3.14159f, glm::vec3(0,1,0));
     //Send the geometry's transformation matrix to the shader
-    m_progLambert.setModelMatrix(model);
+
     //Draw the example sphere using our lambert shader
-    m_progLambert.draw(m_geomSquare);
+  //  m_progLambert.draw(m_geomSquare);
 
     //Now do the same to render the cylinder
     //We've rotated it -45 degrees on the Z axis, then translated it to the point <2,2,0>
-    model = glm::translate(glm::mat4(1.0f), glm::vec3(2,2,0)) * glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0,0,1));
-    m_progLambert.setModelMatrix(model);
-    m_progLambert.draw(m_geomSquare);
+//    model = glm::translate(glm::mat4(1.0f), glm::vec3(2,2,0)) * glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0,0,1));
+//    m_progLambert.setModelMatrix(model);
+ //   m_progLambert.draw(m_geomSquare);
+
+    m_progLambert.setModelMatrix(glm::mat4(1.f));
+    m_progLambert.draw(mesh);
+
+    if(m_vtxDisplay.repVtx) {
+        glDisable(GL_DEPTH_TEST);
+        m_progFlat.draw(m_vtxDisplay);
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    if(m_edgeDisplay.repEdge) {
+        glDisable(GL_DEPTH_TEST);
+        m_progFlat.draw(m_edgeDisplay);
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    if(m_faceDisplay.repFace) {
+        glDisable(GL_DEPTH_TEST);
+        m_progFlat.draw(m_faceDisplay);
+        glEnable(GL_DEPTH_TEST);
+    }
+
 }
 
 
@@ -142,6 +180,31 @@ void MyGL::keyPressEvent(QKeyEvent *e)
         m_glCamera.TranslateAlongUp(amount);
     } else if (e->key() == Qt::Key_R) {
         m_glCamera = Camera(this->width(), this->height());
+    } else if (e->key() == Qt::Key_N) {
+        if (m_edgeDisplay.repEdge) {
+            emit nKey(m_edgeDisplay.repEdge->next);
+            std::cout << "N" << std::endl;
+        }
+    } else if (e->key() == Qt::Key_M) {
+        if (m_edgeDisplay.repEdge) {
+            emit mKey(m_edgeDisplay.repEdge->sym);
+        }
+    } else if (e->key() == Qt::Key_F) {
+        if (m_edgeDisplay.repEdge) {
+            emit fKey(m_edgeDisplay.repEdge->face);
+        }
+    } else if (e->key() == Qt::Key_V) {
+        if (m_edgeDisplay.repEdge) {
+            emit vKey(m_edgeDisplay.repEdge->vtx);
+        }
+    } else if (e->key() == Qt::Key_H && e->modifiers() == Qt::ShiftModifier) {
+        if (m_faceDisplay.repFace) {
+            emit hsKey(m_faceDisplay.repFace->edge);
+        }
+    } else if (e->key() == Qt::Key_H) {
+        if (m_vtxDisplay.repVtx) {
+            emit hKey(m_vtxDisplay.repVtx->edge);
+        }
     }
     m_glCamera.RecomputeAttributes();
     update();  // Calls paintGL, among other things
