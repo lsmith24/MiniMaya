@@ -27,7 +27,13 @@ public:
               right,    //The normalized vector pointing rightwards IN CAMERA SPACE. It is perpendicular to UP and LOOK.
               world_up, //The normalized vector pointing upwards IN WORLD SPACE. This is primarily used for computing the camera's initial UP vector.
               V,        //Represents the vertical component of the plane of the viewing frustum that passes through the camera's reference point. Used in Camera::Raycast.
-              H;        //Represents the horizontal component of the plane of the viewing frustum that passes through the camera's reference point. Used in Camera::Raycast.
+              H,        //Represents the horizontal component of the plane of the viewing frustum that passes through the camera's reference point. Used in Camera::Raycast.
+              forward;
+
+//    glm::vec4 eye4,
+//              forward4,
+//              up4,
+//              right4;
 
     glm::mat4 getViewProj();
 
@@ -39,4 +45,9 @@ public:
     void TranslateAlongLook(float amt);
     void TranslateAlongRight(float amt);
     void TranslateAlongUp(float amt);
+
+    //new polar functions
+    void RotatePhi(float deg);
+    void RotateTheta(float deg);
+    void Zoom(float amt);
 };

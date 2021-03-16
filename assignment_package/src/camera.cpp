@@ -10,6 +10,14 @@ Camera::Camera():
     look = glm::vec3(0,0,-1);
     up = glm::vec3(0,1,0);
     right = glm::vec3(1,0,0);
+//    forward = glm::vec3(0, 0, 1);
+//    eye = glm::vec3(0, 0, 0);
+
+    //polar units
+//    eye4 = glm::vec4(0, 0, 0, 1);
+//    forward4 = glm::vec4(0, 0, 1, 0);
+//    up4 = glm::vec4(0, 1, 0, 0);
+//    right4 = glm::vec4(1, 0, 0, 0);
 }
 
 Camera::Camera(unsigned int w, unsigned int h):
@@ -101,3 +109,44 @@ void Camera::TranslateAlongUp(float amt)
     eye += translation;
     ref += translation;
 }
+
+//new polar rotate
+void Camera::RotatePhi(float deg) {
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.f), glm::radians(deg), up);
+    eye = eye - ref;
+    eye = glm::vec3(rotMat * glm::vec4(eye, 1));
+    eye = eye + ref;
+    RecomputeAttributes();
+}
+
+void Camera::RotateTheta(float deg) {
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.f), glm::radians(deg), right);
+    eye = eye - ref;
+    eye = glm::vec3(rotMat * glm::vec4(eye, 1));
+    eye = eye + ref;
+    RecomputeAttributes();
+}
+
+void Camera::Zoom(float amt) {
+    glm::vec3 trVec = look * amt;
+    eye = eye + trVec;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

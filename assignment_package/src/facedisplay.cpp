@@ -13,13 +13,16 @@ GLenum FaceDisplay::drawMode() {
 
 void FaceDisplay::create() {
     HalfEdge *edge = repFace->edge;
-    std::vector<glm::vec4> pos {
-        glm::vec4(edge->vtx->pos, 1.f),
-        glm::vec4(edge->next->vtx->pos, 1.f),
-        glm::vec4(edge->next->next->vtx->pos, 1.f),
-        glm::vec4(edge->next->next->next->vtx->pos, 1.f),
-    };
-    std::vector<glm::vec4> col {glm::vec4(glm::vec3(1, 1, 1) - (repFace->rgb), 1)};
+    std::vector<glm::vec4> pos;
+    std::vector<glm::vec4> col;
+    HalfEdge* cur = edge;
+    for (cur = edge; cur->next != edge; cur = cur->next) {
+        pos.push_back(glm::vec4(cur->vtx->pos, 1));
+        col.push_back(glm::vec4(glm::vec3(1, 1, 1) - (repFace->rgb), 1));
+    }
+    pos.push_back(glm::vec4(cur->vtx->pos, 1));
+    col.push_back(glm::vec4(glm::vec3(1, 1, 1) - (repFace->rgb), 1));
+
     std::vector<GLuint> indices {0, 1, 1, 2, 2, 3, 3, 0};
     count = 8;
 

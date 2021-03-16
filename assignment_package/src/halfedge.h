@@ -1,5 +1,6 @@
 #pragma once
 #include <QListWidgetItem>
+#include <glm/glm.hpp>
 
 class Face;
 class Vertex;
@@ -20,7 +21,7 @@ public:
     void setSym(HalfEdge *e);
     void setFace(Face* f);
     void setVtx(Vertex* v);
-
+    glm::vec3 getNor();
 };
 
 

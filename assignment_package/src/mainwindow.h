@@ -41,6 +41,12 @@ public slots:
     void addMid();
     void triangulate();
 
+    bool borderEdge(HalfEdge *e);
+    void splitEdge(glm::vec3 newPos, HalfEdge *e1);
+    void quadrangulate(Face *f, Vertex *centroid);
+    void subdivide();
+    void loadOBJ();
+
 private:
     Ui::MainWindow *ui;
 };

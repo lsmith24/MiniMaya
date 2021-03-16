@@ -3,6 +3,7 @@
 #include "face.h"
 #include "vertex.h"
 #include <glm/glm.hpp>
+#include "smartpointerhelp.h"
 
 HalfEdge::HalfEdge()
     : next(nullptr), sym(nullptr), face(nullptr), id(edgeLastID)
@@ -65,5 +66,13 @@ void HalfEdge::setNext(HalfEdge *n) {
     this->next = n;
 }
 
+glm::vec3 HalfEdge::getNor() {
+    Vertex* cur = this->vtx;
+    Vertex* prev = this->sym->vtx;
+    Vertex* next = this->next->vtx;
+    glm::vec3 normal =glm::vec3(glm::cross((cur->pos - prev->pos),
+                                          (next->pos - cur->pos)));
+    return normal;
+}
 
 int HalfEdge::edgeLastID = 0;

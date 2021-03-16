@@ -155,21 +155,21 @@ void MyGL::keyPressEvent(QKeyEvent *e)
     if (e->key() == Qt::Key_Escape) {
         QApplication::quit();
     } else if (e->key() == Qt::Key_Right) {
-        m_glCamera.RotateAboutUp(-amount);
+        m_glCamera.RotatePhi(-amount);
     } else if (e->key() == Qt::Key_Left) {
-        m_glCamera.RotateAboutUp(amount);
+        m_glCamera.RotatePhi(amount);
     } else if (e->key() == Qt::Key_Up) {
-        m_glCamera.RotateAboutRight(-amount);
+        m_glCamera.RotateTheta(-amount);
     } else if (e->key() == Qt::Key_Down) {
-        m_glCamera.RotateAboutRight(amount);
+        m_glCamera.RotateTheta(amount);
     } else if (e->key() == Qt::Key_1) {
         m_glCamera.fovy += amount;
     } else if (e->key() == Qt::Key_2) {
         m_glCamera.fovy -= amount;
     } else if (e->key() == Qt::Key_W) {
-        m_glCamera.TranslateAlongLook(amount);
+        m_glCamera.Zoom(amount);
     } else if (e->key() == Qt::Key_S) {
-        m_glCamera.TranslateAlongLook(-amount);
+        m_glCamera.Zoom(-amount);
     } else if (e->key() == Qt::Key_D) {
         m_glCamera.TranslateAlongRight(amount);
     } else if (e->key() == Qt::Key_A) {
@@ -181,28 +181,28 @@ void MyGL::keyPressEvent(QKeyEvent *e)
     } else if (e->key() == Qt::Key_R) {
         m_glCamera = Camera(this->width(), this->height());
     } else if (e->key() == Qt::Key_N) {
-        if (m_edgeDisplay.repEdge) {
+        if (m_edgeDisplay.repEdge != nullptr) {
             emit nKey(m_edgeDisplay.repEdge->next);
             std::cout << "N" << std::endl;
         }
     } else if (e->key() == Qt::Key_M) {
-        if (m_edgeDisplay.repEdge) {
+        if (m_edgeDisplay.repEdge != nullptr) {
             emit mKey(m_edgeDisplay.repEdge->sym);
         }
     } else if (e->key() == Qt::Key_F) {
-        if (m_edgeDisplay.repEdge) {
+        if (m_edgeDisplay.repEdge != nullptr) {
             emit fKey(m_edgeDisplay.repEdge->face);
         }
     } else if (e->key() == Qt::Key_V) {
-        if (m_edgeDisplay.repEdge) {
+        if (m_edgeDisplay.repEdge != nullptr) {
             emit vKey(m_edgeDisplay.repEdge->vtx);
         }
     } else if (e->key() == Qt::Key_H && e->modifiers() == Qt::ShiftModifier) {
-        if (m_faceDisplay.repFace) {
+        if (m_faceDisplay.repFace != nullptr) {
             emit hsKey(m_faceDisplay.repFace->edge);
         }
     } else if (e->key() == Qt::Key_H) {
-        if (m_vtxDisplay.repVtx) {
+        if (m_vtxDisplay.repVtx != nullptr) {
             emit hKey(m_vtxDisplay.repVtx->edge);
         }
     }
