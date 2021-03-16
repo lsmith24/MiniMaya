@@ -11,6 +11,9 @@ GLenum VtxDisplay::drawMode() {
 }
 
 void VtxDisplay::create() {
+    if (repVtx == nullptr) {
+        return;
+    }
     std::vector<glm::vec4> pos {glm::vec4(repVtx->pos, 1)};
     std::vector<glm::vec4> col {glm::vec4(1, 1, 1, 0)};
     std::vector<GLuint> indices {0};

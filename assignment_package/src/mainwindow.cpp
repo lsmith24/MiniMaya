@@ -272,8 +272,9 @@ void MainWindow::splitEdge(glm::vec3 newPos, HalfEdge *e) {
 }
 
 void MainWindow::quadrangulate(Face *f, Vertex *centroid) {
-    Vertex *startVtx = f->edge->vtx;
+    Vertex *startVtx = f->edge->sym->vtx;
     HalfEdge *e = f->edge;
+    HalfEdge *temp = f->edge;
     HalfEdge *firstSym = nullptr;
     HalfEdge *lastSym = nullptr;
     HalfEdge *nextEdge;
@@ -332,6 +333,7 @@ void MainWindow::quadrangulate(Face *f, Vertex *centroid) {
     fromCentr->next = e;
     toCentr->vtx = centroid;
     fromCentr->vtx = startVtx;
+    std::cout << glm::to_string(startVtx->pos) << std::endl;
 
     toCentr->sym = firstSym;
     firstSym->sym = toCentr.get();
@@ -430,7 +432,6 @@ void MainWindow::subdivide() {
         Face *f = ui->mygl->mesh.faces[i].get();
         Vertex *c = centroids[f];
         quadrangulate(f, centroids[f]);
-        std::cout << glm::to_string(c->pos) << std::endl;
     }
 
     //update list widget items
@@ -455,155 +456,23 @@ void MainWindow::subdivide() {
 }
 
 void MainWindow::loadOBJ() {
-    //    //  if (click) {
-    //    std::vector<uPtr<HalfEdge>> edges;
-    //    std::vector<uPtr<Vertex>> verts;
-    //    std::vector<uPtr<Face>> faces;
-    //    QMap<std::pair<Vertex*, Vertex*>, HalfEdge*> edgeVerts;
 
-    //    QString filename = QFileDialog::getOpenFileName(0, QString("LoadOBJ"), QString("../../"), tr("*.obj"));
-    //    QFile file(filename);
+    std::map<std::pair<Vertex*, Vertex*>, HalfEdge*> sym_pairs =  std::map<std::pair<Vertex*, Vertex*>, HalfEdge*>();
+    std::vector<std::pair<Vertex*, Vertex*>> pairs;
 
-    //    std::cout << "1" << std::endl;
-
-    //    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    //        ui->mygl->mesh.destroy();
-    //        HalfEdge::edgeLastID = 0;
-    //        Face::faceLastID = 0;
-    //        Vertex::vtxLastID = 0;
-
-    //        QTextStream in(&file);
-    //        QString line = in.readLine();
-
-    //        while (!line.isNull()) {
-    //            //vertices
-    //            if (line.indexOf(QString("v ")) == 0) {
-    //                QTextStream stream(&line);
-
-    //                QString pre;
-    //                float xPos;
-    //                float yPos;
-    //                float zPos;
-    //                stream >> pre >> xPos >> yPos >> zPos;
-
-    //                glm::vec3 pos = glm::vec3(xPos, yPos, zPos);
-    //                uPtr<Vertex> v = mkU<Vertex>(pos);
-    //                verts.push_back(std::move(v));
-    //            }
-
-    //            //faces
-    //            if(line.indexOf(QString("f ")) == 0) {
-    //                QTextStream stream(&line);
-    //                QString prefix;
-    //                stream >> prefix;
-
-    //                std::vector<QString> strVec;
-    //                while (!stream.atEnd()) {
-    //                    QString cur;
-    //                    stream >> cur;
-    //                    strVec.push_back(cur);
-    //                }
-
-    //                std::vector<QString> indices;
-    //                for (QString s : strVec) {
-    //                    QString val = "";
-    //                    for (int i = 0; i < s.length(); ++i) {
-    //                        if (s.at(i) != "/") {
-    //                            val = val + s.at(i);
-    //                        } else {
-    //                            break;
-    //                        }
-    //                    }
-    //                    indices.push_back(val);
-    //                }
-    //                float r = ((float) rand() / (RAND_MAX));
-    //                float g = ((float) rand() / (RAND_MAX));
-    //                float b = ((float) rand() / (RAND_MAX));
-    //                glm::vec3 color = glm::vec3(r, g, b);
-    //                uPtr<Face> newFace = mkU<Face>(color);
-
-    //                //Half Edges
-    //                std::vector<uPtr<HalfEdge>> faceEdges;
-    //                int x = int(indices.size());
-    //                for (int i = 0; i < x; i++) {
-    //                    int index = indices.at(i).toInt() - 1;
-    //                    uPtr<HalfEdge> edge = mkU<HalfEdge>(newFace.get(), verts.at(index).get());
-    //                    Vertex* curVert = verts.at(index).get();
-    //                    Vertex* preVert;
-
-    //                    if (i == 0) {
-    //                        preVert = verts.at(indices.at(indices.size() - 1).toInt() - 1).get();
-    //                    }
-    //                    else {
-    //                        preVert = verts.at(indices.at(i - 1).toInt() - 1).get();
-    //                    }
-
-    //                    curVert->edge = edge.get();
-    //                    faceEdges.push_back(std::move(edge));
-
-    //                    std::pair<Vertex*, Vertex*> pair1 = std::make_pair(curVert, preVert);
-    //                    std::pair<Vertex*, Vertex*> pair2 = std::make_pair(preVert, curVert);
-    //                    if (edgeVerts.contains(pair1) || edgeVerts.contains(pair2)) {
-    //                        std::pair<Vertex*, Vertex*> curPair;
-    //                        if (edgeVerts.contains(pair1)) {
-    //                            curPair = pair1;
-    //                        } else {
-    //                            curPair = pair2;
-    //                        }
-
-    //                        HalfEdge* sym = edgeVerts[curPair];
-    //                        edge->sym = sym;
-    //                    } else {
-    //                        edgeVerts.insert(pair1, edge.get());
-    //                    }
-    //                }
-
-    //                newFace->edge = faceEdges.at(0).get();
-    //                int n = int(faceEdges.size());
-    //                for (int i = 0; i < n; i++) {
-    //                    faceEdges.at(i)->next = faceEdges.at((i + 1) % faceEdges.size()).get();
-    //                    edges.push_back(std::move(faceEdges.at(i)));
-    //                }
-    //                faces.push_back(std::move(newFace));
-    //            }
-    //            line = in.readLine();
-    //        }
-    //        ui->mygl->mesh.faces = std::move(faces);
-    //        ui->mygl->mesh.edges = std::move(edges);
-    //        ui->mygl->mesh.vertices = std::move(verts);
-    //    }
-    //    ui->mygl->mesh.create();
-
-    //    for (uPtr<Vertex> &v : ui->mygl->mesh.vertices) {
-    //        ui->vertsListWidget->addItem(v.get());
-    //    }
-
-    //    for (uPtr<HalfEdge> &e : ui->mygl->mesh.edges) {
-    //        ui->halfEdgesListWidget->addItem(e.get());
-    //    }
-
-    //    for (uPtr<Face> &f : ui->mygl->mesh.faces) {
-    //        ui->facesListWidget->addItem(f.get());
-    //    }
-    //    ui->mygl->update();
-
-
-    std::map<HalfEdge*, std::pair<Vertex*, Vertex*>> sym_pairs =  std::map<HalfEdge*, std::pair<Vertex*, Vertex*>>();
-
+    //get file
     QString filename = QFileDialog::getOpenFileName(0, QString("load"), QString("../../"), tr("*.obj"));
-
     QFile file(filename);
 
     QList<Vertex*> v;
     QList<glm::vec2> vt;
     QList<glm::vec4> vn;
-    int index;
 
-    //if file exists, and opened
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
 
         //clear qlistwidget
         ui->mygl->mesh.destroy();
+
         Vertex::vtxLastID = 0;
         HalfEdge::edgeLastID = 0;
         Face::faceLastID = 0;
@@ -618,7 +487,7 @@ void MainWindow::loadOBJ() {
             char name[3];
             float x, y, z;
 
-            //vertex position
+            //vertex
             if(line.indexOf(QString("v")) == 0 && line.indexOf(QString(" ")) == 1) {
                 QTextStream stream(&line);
                 stream >> name[0] >> x >> y >> z;
@@ -628,14 +497,14 @@ void MainWindow::loadOBJ() {
                 ui->mygl->mesh.vertices.push_back(std::move(vert));
             }
 
-            //vertex texture
+            //vert texture
             if(line.indexOf(QString("v")) == 0 && line.indexOf(QString("t")) == 1) {
                 QTextStream stream(&line);
                 stream >> name[1] >> name[2] >> x >> y;
                 vt.push_back(glm::vec2(x,y));
             }
 
-            //vertex normal
+            //vert normal
             if(line.indexOf(QString("v")) == 0 && line.indexOf(QString("n")) == 1) {
                 QTextStream stream(&line);
                 stream >> name[1] >> name[2] >> x >> y >> z;
@@ -644,7 +513,7 @@ void MainWindow::loadOBJ() {
 
 
             //face
-            if(line.indexOf(QString("f ")) == 0) {
+            if(line.indexOf(QString("f")) == 0) {
                 QTextStream stream(&line);
                 QString prefix;
                 stream >> prefix;
@@ -654,73 +523,83 @@ void MainWindow::loadOBJ() {
                     stream >> curr;
                     corners.push_back(curr);
                 }
-                std::vector<Vertex*> face_verts = std::vector<Vertex*>();
-                std::vector<HalfEdge*> face_HE = std::vector<HalfEdge*>();
+                //face loop
+                HalfEdge *prev = nullptr;
+                uPtr<Face> face = mkU<Face>();
+                std::vector<HalfEdge*> face_HE;
+                bool gotFirst = false;
+                Vertex *first = nullptr;
                 for(QString corner : corners) {
                     QStringList list = corner.split("/", QString::SkipEmptyParts);
-                    Vertex* vrt = v.at(list.at(0).toInt() - 1);
-                    face_verts.push_back(vrt);
-                }
-                float r1 = ((double) rand() / (RAND_MAX));
-                float r2 = ((double) rand() / (RAND_MAX));
-                float r3 = ((double) rand() / (RAND_MAX));
-                glm::vec3 color = glm::vec3(r1,r2,r3);
-                uPtr<Face> face = mkU<Face>(color);
-                //Face *tempFace = face.get();
-                for(Vertex* vert : face_verts) {
-                    uPtr<HalfEdge> new_HE = mkU<HalfEdge>();
-                    new_HE->vtx = vert;
-                    new_HE->face = face.get();
-                    vert->edge = new_HE.get();
-                    face->edge = new_HE.get();
-                    face_HE.push_back(new_HE.get());
-                    ui->mygl->mesh.edges.push_back(std::move(new_HE));
-                }
-                ui->mygl->mesh.faces.push_back(std::move(face));
-                for(int i = 0; i < int(face_HE.size()); i++) {
-                    HalfEdge* new1 = face_HE.at(i % face_HE.size());
-                    HalfEdge* new2 = face_HE.at((++i) % face_HE.size());
-                    new1->setNext(new2);
-                }
-                for(HalfEdge* HE : face_HE) {
-                    HalfEdge* curr = HE;
-                    HalfEdge* prev_HE;
-                    while (curr != HE) {
-                        prev_HE = curr;
-                        curr = curr->next;
+                    Vertex* vrt = ui->mygl->mesh.vertices.at(list.at(0).toInt() - 1).get();
+
+                    if (!gotFirst) {
+                        first = vrt;
+                        gotFirst = true;
                     }
 
-                    Vertex* prev = prev_HE->vtx;
-                    std::pair<Vertex*, Vertex*> vert_pair1 = std::pair<Vertex*, Vertex*>();
-                    vert_pair1.first = prev;
-                    vert_pair1.second = HE->vtx;
-                    sym_pairs[HE] = vert_pair1;
+                    //face color
+                    float r1 = ((double) rand() / (RAND_MAX));
+                    float r2 = ((double) rand() / (RAND_MAX));
+                    float r3 = ((double) rand() / (RAND_MAX));
+                    glm::vec3 color = glm::vec3(r1,r2,r3);
+                    face->rgb = color;
+
+                    uPtr<HalfEdge> eg = mkU<HalfEdge>(face.get(), vrt);
+                    ui->mygl->mesh.edges.push_back(std::move(eg));
+                    uPtr<HalfEdge> &new_HE = ui->mygl->mesh.edges.back();
+                    vrt->edge = new_HE.get();
+                    new_HE->vtx = vrt;
+                    face->edge = new_HE.get();
+                    face_HE.push_back(new_HE.get());
+
+                    //sym pairs
+                    if (prev != nullptr) {
+                        Vertex *prevVert = prev->vtx;
+                        std::pair<Vertex*, Vertex*> vert_pair1 = std::pair<Vertex*, Vertex*>(prevVert, new_HE->vtx);
+                        sym_pairs[vert_pair1] = new_HE.get();
+                        pairs.push_back(vert_pair1);
+                    }
+                    prev = new_HE.get();
+
                 }
+                std::pair<Vertex*, Vertex*> vert_pair1 = std::pair<Vertex*, Vertex*>(prev->vtx, first);
+                sym_pairs[vert_pair1] = first->edge;
+                pairs.push_back(vert_pair1);
+
+                for(int i = 0; i < int(face_HE.size()); i++) {
+                    HalfEdge* new1 = face_HE.at(i % face_HE.size());
+                    HalfEdge* new2 = face_HE.at((i + 1) % face_HE.size());
+                    new1->next = new2;
+                }
+                ui->mygl->mesh.faces.push_back(std::move(face));
             }
             line = in.readLine();
         }
     }
-    for(uPtr<HalfEdge> &EH1 : ui->mygl->mesh.edges) {
-        std::pair<Vertex*, Vertex*> pair1 = sym_pairs[EH1.get()];
-        for(uPtr<HalfEdge> &EH2 : ui->mygl->mesh.edges) {
-            if(EH1 != EH2 && EH1->sym == nullptr) {
-                std::pair<Vertex*, Vertex*> pair2 = sym_pairs[EH2.get()];
-                if(pair1.first == pair2.first && pair1.second == pair2.second) {
-                    EH1->setSym(EH2.get());
-                    EH2->setSym(EH1.get());
-                }
-                else if(pair1.second == pair2.first && pair1.first == pair2.second) {
-                    EH1->setSym(EH2.get());
-                    EH2->setSym(EH1.get());
-                }
-                else if(pair2.second == pair1.first && pair2.first == pair1.second) {
-                    EH1->setSym(EH2.get());
-                    EH2->setSym(EH1.get());
-                }
-            }
-        }
+    //sym pointers
+    for (auto p : pairs) {
+        HalfEdge *e1 = sym_pairs[p];
+        std::pair<Vertex*, Vertex*> flip = std::pair(p.second, p.first);
+        HalfEdge *e2 = sym_pairs[flip];
+        e1->sym = e2;
+        e2->sym = e1;
     }
+
+    //add items to list widget
+    for (uPtr<Vertex> &v : ui->mygl->mesh.vertices) {
+        ui->vertsListWidget->addItem(v.get());
+    }
+
+    for (uPtr<HalfEdge> &e : ui->mygl->mesh.edges) {
+        ui->halfEdgesListWidget->addItem(e.get());
+    }
+
+    for (uPtr<Face> &f : ui->mygl->mesh.faces) {
+        ui->facesListWidget->addItem(f.get());
+    }
+
     ui->mygl->mesh.create();
-    update();
+    ui->mygl->update();
 }
-//}
+

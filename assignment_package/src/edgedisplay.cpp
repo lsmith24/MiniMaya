@@ -11,6 +11,9 @@ GLenum EdgeDisplay::drawMode() {
 }
 
 void EdgeDisplay::create() {
+    if (repEdge == nullptr) {
+        return;
+    }
     std::vector<glm::vec4> pos {glm::vec4(repEdge->vtx->pos, 1),
                                glm::vec4(repEdge->sym->vtx->pos, 1)};
     std::vector<glm::vec4> col {glm::vec4(1, 1, 0, 0), glm::vec4(1, 0, 0, 0)};

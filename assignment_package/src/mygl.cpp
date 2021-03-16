@@ -120,21 +120,21 @@ void MyGL::paintGL()
  //   m_progLambert.draw(m_geomSquare);
 
     m_progLambert.setModelMatrix(glm::mat4(1.f));
-    m_progLambert.draw(mesh);
+    m_progFlat.draw(mesh);
 
-    if(m_vtxDisplay.repVtx) {
+    if(m_vtxDisplay.repVtx != nullptr) {
         glDisable(GL_DEPTH_TEST);
         m_progFlat.draw(m_vtxDisplay);
         glEnable(GL_DEPTH_TEST);
     }
 
-    if(m_edgeDisplay.repEdge) {
+    if(m_edgeDisplay.repEdge != nullptr) {
         glDisable(GL_DEPTH_TEST);
         m_progFlat.draw(m_edgeDisplay);
         glEnable(GL_DEPTH_TEST);
     }
 
-    if(m_faceDisplay.repFace) {
+    if(m_faceDisplay.repFace != nullptr) {
         glDisable(GL_DEPTH_TEST);
         m_progFlat.draw(m_faceDisplay);
         glEnable(GL_DEPTH_TEST);
