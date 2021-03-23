@@ -46,6 +46,7 @@ public slots:
     void quadrangulate(Face *f, Vertex *centroid);
     void subdivide();
     void loadOBJ();
+    void loadJSON();
 
 private:
     Ui::MainWindow *ui;

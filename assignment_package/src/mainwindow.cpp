@@ -36,6 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->triangulate, SIGNAL(clicked(bool)), this, SLOT(triangulate()));
     connect(ui->subdivide, SIGNAL(clicked(bool)), this, SLOT(subdivide()));
     connect(ui->load, SIGNAL(pressed()), this, SLOT(loadOBJ()));
+    connect(ui->json, SIGNAL(pressed()), this, SLOT(loadJSON()));
 }
 
 MainWindow::~MainWindow()
@@ -274,7 +275,6 @@ void MainWindow::splitEdge(glm::vec3 newPos, HalfEdge *e) {
 void MainWindow::quadrangulate(Face *f, Vertex *centroid) {
     Vertex *startVtx = f->edge->sym->vtx;
     HalfEdge *e = f->edge;
-    HalfEdge *temp = f->edge;
     HalfEdge *firstSym = nullptr;
     HalfEdge *lastSym = nullptr;
     HalfEdge *nextEdge;
@@ -430,7 +430,6 @@ void MainWindow::subdivide() {
     //quadrangulate each face
     for (int i = 0; i < numFaces; i++) {
         Face *f = ui->mygl->mesh.faces[i].get();
-        Vertex *c = centroids[f];
         quadrangulate(f, centroids[f]);
     }
 
@@ -601,5 +600,9 @@ void MainWindow::loadOBJ() {
 
     ui->mygl->mesh.create();
     ui->mygl->update();
+}
+
+void MainWindow::loadJSON() {
+
 }
 
