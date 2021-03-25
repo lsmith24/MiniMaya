@@ -893,14 +893,23 @@ void MainWindow::makeInfluence() {
         std::stringstream j1;
         std::stringstream j2;
         if (v->influence.find(j->ID) == v->influence.end()) { //if joint does not already influence vertex
-            auto it = v->influence.begin();
-            it->second = 0.5; //make first joints influence 50%
-            it++;
-            v->influence.erase(it); //take out joint 2
-            v->influence.insert({j->ID, 0.5}); //new joint has 50% influence
+            v->influence.erase(std::prev(v->influence.end()));
+            v->influence.insert({j->ID, 0.5}); //new joint with 50% influence
+            int otherID;
 
-            j1 << std::fixed << std::setprecision(2) << v->influence[0];
-            j2 << std::fixed << std::setprecision(2) << v->influence[1];
+            for (auto pair : v->influence) {
+                if (pair.first != j->ID) {
+                    otherID = pair.first; //get second joint
+                }
+            }
+
+            v->influence[otherID] = 0.5; //set other joint's influence to 50%
+
+            float inf1 = v->influence[j->ID];
+            float inf2 = v->influence[otherID];
+
+            j1 << std::fixed << std::setprecision(2) << inf1;
+            j2 << std::fixed << std::setprecision(2) << inf2;
             ui->j1influence->setText(QString::fromStdString(j1.str()));
             ui->j2influence->setText(QString::fromStdString(j2.str()));
 
@@ -917,14 +926,26 @@ void MainWindow::increaseInfluence() {
     if (ui->mygl->m_vtxDisplay.repVtx != nullptr && ui->mygl->m_jointDisplay.repJoint != nullptr && ui->mygl->alreadySkinned) {
         Joint *j = ui->mygl->m_jointDisplay.repJoint;
         Vertex *v = ui->mygl->m_vtxDisplay.repVtx;
+        std::stringstream j1;
+        std::stringstream j2;
+        int otherID;
         //if joint already influences the vertex
         if (v->influence.find(j->ID) != v->influence.end()) {
             v->influence.at(j->ID) += 0.1; //increase influence
+
             for (auto pair : v->influence) {
                 if (pair.first != j->ID) {
-                    pair.second -= 0.1; //decrease influence of other joint
+                    otherID = pair.first; //get second joint
                 }
             }
+            v->influence[otherID] -= 0.1;
+            float inf1 = v->influence[j->ID];
+            float inf2 = v->influence[otherID];
+
+            j1 << std::fixed << std::setprecision(2) << inf1;
+            j2 << std::fixed << std::setprecision(2) << inf2;
+            ui->j1influence->setText(QString::fromStdString(j1.str()));
+            ui->j2influence->setText(QString::fromStdString(j2.str()));
         }
         ui->mygl->mesh.destroy();
         ui->mygl->mesh.create();
