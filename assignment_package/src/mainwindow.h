@@ -58,6 +58,8 @@ public slots:
     void changeJointX(double d);
     void changeJointY(double d);
     void changeJointZ(double d);
+    void makeInfluence();
+    void increaseInfluence();
 
 private:
     Ui::MainWindow *ui;

@@ -52,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->rotateX, SIGNAL(pressed()), this, SLOT(rotateJointX()));
     connect(ui->rotateY, SIGNAL(pressed()), this, SLOT(rotateJointY()));
     connect(ui->rotateZ, SIGNAL(pressed()), this, SLOT(rotateJointZ()));
+    connect(ui->makeInfluence, SIGNAL(pressed()), this, SLOT(makeInfluence()));
+    connect(ui->incrInfluence, SIGNAL(pressed()), this, SLOT(increaseInfluence()));
 }
 
 MainWindow::~MainWindow()
@@ -881,5 +883,53 @@ void MainWindow::displayJointTransform() {
         ui->xDisplay->setText(QString::fromStdString(xStr.str()));
         ui->yDisplay->setText(QString::fromStdString(yStr.str()));
         ui->zDisplay->setText(QString::fromStdString(zStr.str()));
+    }
+}
+
+void MainWindow::makeInfluence() {
+    if (ui->mygl->m_vtxDisplay.repVtx != nullptr && ui->mygl->m_jointDisplay.repJoint != nullptr && ui->mygl->alreadySkinned) {
+        Joint *j = ui->mygl->m_jointDisplay.repJoint;
+        Vertex *v = ui->mygl->m_vtxDisplay.repVtx;
+        std::stringstream j1;
+        std::stringstream j2;
+        if (v->influence.find(j->ID) == v->influence.end()) { //if joint does not already influence vertex
+            auto it = v->influence.begin();
+            it->second = 0.5; //make first joints influence 50%
+            it++;
+            v->influence.erase(it); //take out joint 2
+            v->influence.insert({j->ID, 0.5}); //new joint has 50% influence
+
+            j1 << std::fixed << std::setprecision(2) << v->influence[0];
+            j2 << std::fixed << std::setprecision(2) << v->influence[1];
+            ui->j1influence->setText(QString::fromStdString(j1.str()));
+            ui->j2influence->setText(QString::fromStdString(j2.str()));
+
+            ui->mygl->mesh.destroy();
+            ui->mygl->mesh.create();
+            ui->mygl->m_vtxDisplay.create();
+            ui->mygl->jointTransform();
+            ui->mygl->update();
+        }
+    }
+}
+
+void MainWindow::increaseInfluence() {
+    if (ui->mygl->m_vtxDisplay.repVtx != nullptr && ui->mygl->m_jointDisplay.repJoint != nullptr && ui->mygl->alreadySkinned) {
+        Joint *j = ui->mygl->m_jointDisplay.repJoint;
+        Vertex *v = ui->mygl->m_vtxDisplay.repVtx;
+        //if joint already influences the vertex
+        if (v->influence.find(j->ID) != v->influence.end()) {
+            v->influence.at(j->ID) += 0.1; //increase influence
+            for (auto pair : v->influence) {
+                if (pair.first != j->ID) {
+                    pair.second -= 0.1; //decrease influence of other joint
+                }
+            }
+        }
+        ui->mygl->mesh.destroy();
+        ui->mygl->mesh.create();
+        ui->mygl->m_vtxDisplay.create();
+        ui->mygl->jointTransform();
+        ui->mygl->update();
     }
 }

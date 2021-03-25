@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1053</width>
+    <width>1106</width>
     <height>498</height>
    </rect>
   </property>
@@ -381,8 +381,8 @@
      <rect>
       <x>860</x>
       <y>10</y>
-      <width>181</width>
-      <height>391</height>
+      <width>221</width>
+      <height>351</height>
      </rect>
     </property>
     <column>
@@ -595,13 +595,65 @@
      <string>z</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="makeInfluence">
+    <property name="geometry">
+     <rect>
+      <x>860</x>
+      <y>370</y>
+      <width>111</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Make Influence</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="incrInfluence">
+    <property name="geometry">
+     <rect>
+      <x>860</x>
+      <y>400</y>
+      <width>111</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Increase Influence</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="j1influence">
+    <property name="geometry">
+     <rect>
+      <x>990</x>
+      <y>370</y>
+      <width>91</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>joint, influence</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="j2influence">
+    <property name="geometry">
+     <rect>
+      <x>990</x>
+      <y>400</y>
+      <width>81</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>joint, influence</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1053</width>
+     <width>1106</width>
      <height>21</height>
     </rect>
    </property>
