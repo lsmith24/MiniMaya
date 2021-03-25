@@ -18,9 +18,10 @@ void Mesh::create() {
     std::vector<glm::vec4> pos;
     std::vector<glm::vec4> nor;
     std::vector<glm::vec4> col;
+    std::vector<int> jointID;
+    std::vector<float> weights;
 
     for(uPtr<Face> &f : faces) {
-
         int numVtx = 0;
         HalfEdge* he = f->edge;
         do  {
@@ -33,6 +34,10 @@ void Mesh::create() {
             glm::vec3 normal =glm::vec3(glm::cross((cur->pos - prev->pos),
                                                   (next->pos - cur->pos)));
             nor.push_back(glm::vec4(normal, 1));
+            for (const auto &pair : cur->influence) {
+                jointID.push_back(pair.first);
+                weights.push_back(pair.second);
+            }
             he = he->next;
 
         } while (he != f->edge);
@@ -61,6 +66,14 @@ void Mesh::create() {
         generateCol();
         mp_context->glBindBuffer(GL_ARRAY_BUFFER, bufCol);
         mp_context->glBufferData(GL_ARRAY_BUFFER, col.size() * sizeof(glm::vec4), col.data(), GL_STATIC_DRAW);
+
+        generateID();
+        mp_context->glBindBuffer(GL_ARRAY_BUFFER, bufID);
+        mp_context->glBufferData(GL_ARRAY_BUFFER, jointID.size() * sizeof(glm::ivec2), jointID.data(), GL_STATIC_DRAW);
+
+        generateWeight();
+        mp_context->glBindBuffer(GL_ARRAY_BUFFER, bufWeight);
+        mp_context->glBufferData(GL_ARRAY_BUFFER, weights.size() * sizeof(glm::ivec2), weights.data(), GL_STATIC_DRAW);
 }
 
 void Mesh::makeCube() {
@@ -221,6 +234,4 @@ void Mesh::makeCube() {
     edges.push_back(std::move(Bt03));
     edges.push_back(std::move(Bt37));
     edges.push_back(std::move(Bt74));
-
-    std::cout << "End" << std::endl;
 }

@@ -10,6 +10,8 @@
 #include "edgedisplay.h"
 #include "facedisplay.h"
 #include "vtxdisplay.h"
+#include "joint.h"
+#include "jointdisplay.h"
 
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLShaderProgram>
@@ -23,6 +25,7 @@ private:
     SquarePlane m_geomSquare;// The instance of a unit cylinder we can use to render any cylinder
     ShaderProgram m_progLambert;// A shader program that uses lambertian reflection
     ShaderProgram m_progFlat;// A shader program that uses "flat" reflection (no shadowing at all)
+    ShaderProgram m_progSkeleton;
 
     GLuint vao; // A handle for our vertex array object. This will store the VBOs created in our geometry classes.
                 // Don't worry too much about this. Just know it is necessary in order to render geometry.
@@ -42,6 +45,13 @@ public:
     EdgeDisplay m_edgeDisplay;
     VtxDisplay m_vtxDisplay;
     FaceDisplay m_faceDisplay;
+    std::vector<uPtr<Joint>> skeleton;
+    Joint* curJoint;
+    JointDisplay m_jointDisplay;
+    bool alreadySkinned;
+
+    void jointTransform();
+    void setBind();
 
 
 protected:
@@ -57,6 +67,7 @@ signals:
     void vKey(QListWidgetItem* item);
     void hsKey(QListWidgetItem* item);
     void hKey(QListWidgetItem* item);
+
 };
 
 

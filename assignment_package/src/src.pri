@@ -7,6 +7,7 @@ SOURCES += \
     $$PWD/facedisplay.cpp \
     $$PWD/halfedge.cpp \
     $$PWD/joint.cpp \
+    $$PWD/jointdisplay.cpp \
     $$PWD/main.cpp \
     $$PWD/mainwindow.cpp \
     $$PWD/mesh.cpp \
@@ -28,6 +29,7 @@ HEADERS += \
     $$PWD/facedisplay.h \
     $$PWD/halfedge.h \
     $$PWD/joint.h \
+    $$PWD/jointdisplay.h \
     $$PWD/la.h \
     $$PWD/mainwindow.h \
     $$PWD/mesh.h \

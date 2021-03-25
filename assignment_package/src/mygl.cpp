@@ -9,9 +9,10 @@
 MyGL::MyGL(QWidget *parent)
     : OpenGLContext(parent),
       m_geomSquare(this),
-      m_progLambert(this), m_progFlat(this),
+      m_progLambert(this), m_progFlat(this), m_progSkeleton(this),
       m_glCamera(), mesh(this), m_edgeDisplay(this),
-      m_vtxDisplay(this), m_faceDisplay(this)
+      m_vtxDisplay(this), m_faceDisplay(this), skeleton(std::vector<uPtr<Joint>>()),
+      curJoint(nullptr), m_jointDisplay(this), alreadySkinned(false)
 {
     setFocusPolicy(Qt::StrongFocus);
 }
@@ -22,6 +23,13 @@ MyGL::~MyGL()
     glDeleteVertexArrays(1, &vao);
     m_geomSquare.destroy();
     mesh.destroy();
+    m_vtxDisplay.destroy();
+    m_edgeDisplay.destroy();
+    m_faceDisplay.destroy();
+    m_jointDisplay.destroy();
+    for (uPtr<Joint> &j : skeleton) {
+        j->destroy();
+    }
 }
 
 void MyGL::initializeGL()
@@ -56,6 +64,8 @@ void MyGL::initializeGL()
     // Create and set up the flat lighting shader
     m_progFlat.create(":/glsl/flat.vert.glsl", ":/glsl/flat.frag.glsl");
 
+    m_progSkeleton.create(":/glsl/skeleton.vert.glsl", ":/glsl/skeleton.frag.glsl");
+
     mesh.makeCube();
     mesh.create();
 
@@ -87,6 +97,7 @@ void MyGL::resizeGL(int w, int h)
 
     m_progLambert.setViewProjMatrix(viewproj);
     m_progFlat.setViewProjMatrix(viewproj);
+    m_progSkeleton.setViewProjMatrix(viewproj);
 
     printGLErrorLog();
 }
@@ -100,27 +111,19 @@ void MyGL::paintGL()
 
     m_progFlat.setViewProjMatrix(m_glCamera.getViewProj());
     m_progLambert.setViewProjMatrix(m_glCamera.getViewProj());
+    m_progSkeleton.setViewProjMatrix(m_glCamera.getViewProj());
     m_progLambert.setCamPos(m_glCamera.eye);
+    m_progSkeleton.setCamPos(m_glCamera.eye);
     m_progFlat.setModelMatrix(glm::mat4(1.f));
-
-    //Create a model matrix. This one rotates the square by PI/4 radians then translates it by <-2,0,0>.
-    //Note that we have to transpose the model matrix before passing it to the shader
-    //This is because OpenGL expects column-major matrices, but you've
-    //implemented row-major matrices.
- //   glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(-2,0,0)) * glm::rotate(glm::mat4(), 0.25f * 3.14159f, glm::vec3(0,1,0));
-    //Send the geometry's transformation matrix to the shader
-
-    //Draw the example sphere using our lambert shader
-  //  m_progLambert.draw(m_geomSquare);
-
-    //Now do the same to render the cylinder
-    //We've rotated it -45 degrees on the Z axis, then translated it to the point <2,2,0>
-//    model = glm::translate(glm::mat4(1.0f), glm::vec3(2,2,0)) * glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0,0,1));
-//    m_progLambert.setModelMatrix(model);
- //   m_progLambert.draw(m_geomSquare);
-
     m_progLambert.setModelMatrix(glm::mat4(1.f));
-    m_progFlat.draw(mesh);
+    m_progSkeleton.setModelMatrix(glm::mat4(1.f));
+
+    if (alreadySkinned) {
+        m_progSkeleton.draw(mesh);
+    }
+    else {
+        m_progFlat.draw(mesh);
+    }
 
     if(m_vtxDisplay.repVtx != nullptr) {
         glDisable(GL_DEPTH_TEST);
@@ -140,6 +143,20 @@ void MyGL::paintGL()
         glEnable(GL_DEPTH_TEST);
     }
 
+    if (skeleton.size() > 0) {
+        glDisable(GL_DEPTH_TEST);
+        for (uPtr<Joint> &j : skeleton) {
+            Joint *cur = j.get();
+            m_progFlat.draw(*cur);
+        }
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    if (m_jointDisplay.repJoint != nullptr) {
+        glDisable(GL_DEPTH_TEST);
+        m_progFlat.draw(m_jointDisplay);
+        glEnable(GL_DEPTH_TEST);
+    }
 }
 
 
@@ -183,7 +200,6 @@ void MyGL::keyPressEvent(QKeyEvent *e)
     } else if (e->key() == Qt::Key_N) {
         if (m_edgeDisplay.repEdge != nullptr) {
             emit nKey(m_edgeDisplay.repEdge->next);
-            std::cout << "N" << std::endl;
         }
     } else if (e->key() == Qt::Key_M) {
         if (m_edgeDisplay.repEdge != nullptr) {
@@ -208,4 +224,34 @@ void MyGL::keyPressEvent(QKeyEvent *e)
     }
     m_glCamera.RecomputeAttributes();
     update();  // Calls paintGL, among other things
+}
+
+void MyGL::jointTransform() {
+    m_progSkeleton.useMe();
+    glm::mat4 transform[100];
+
+    for (int i = 0; i < int(skeleton.size()); i++) {
+        Joint *j = skeleton[i].get();
+        transform[i] = j->getOverallTransformation();
+    }
+
+    if (m_progSkeleton.unifJointTransforms != -1) {
+        this->glUniformMatrix4fv(m_progSkeleton.unifJointTransforms, skeleton.size(), GL_FALSE,
+                                 &(transform[0][0][0]));
+    }
+}
+
+void MyGL::setBind() {
+    m_progSkeleton.useMe();
+    glm::mat4 bindMats[100];
+
+    for (int i = 0; i < int(skeleton.size()); i++) {
+        Joint *j = skeleton[i].get();
+        j->setBind();
+        bindMats[i] = j->bindMatrix;
+    }
+    if (m_progSkeleton.unifBindMatrices != -1) {
+        this->glUniformMatrix4fv(m_progSkeleton.unifBindMatrices, skeleton.size(), GL_FALSE,
+                                 &(bindMats[0][0][0]));
+    }
 }

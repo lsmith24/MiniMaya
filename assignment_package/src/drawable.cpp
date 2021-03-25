@@ -2,9 +2,9 @@
 #include <la.h>
 
 Drawable::Drawable(OpenGLContext* context)
-    : count(-1), bufIdx(), bufPos(), bufNor(), bufCol(),
-      idxBound(false), posBound(false), norBound(false), colBound(false),
-      mp_context(context)
+    : count(-1), bufIdx(), bufPos(), bufNor(), bufCol(), bufID(), bufWeight(),
+      idxBound(false), posBound(false), norBound(false), colBound(false), IDbound(false),
+      weightBound(false), mp_context(context)
 {}
 
 Drawable::~Drawable() {
@@ -18,6 +18,8 @@ void Drawable::destroy()
     mp_context->glDeleteBuffers(1, &bufPos);
     mp_context->glDeleteBuffers(1, &bufNor);
     mp_context->glDeleteBuffers(1, &bufCol);
+    mp_context->glDeleteBuffers(1, &bufID);
+    mp_context->glDeleteBuffers(1, &bufWeight);
 }
 
 GLenum Drawable::drawMode()
@@ -64,6 +66,16 @@ void Drawable::generateCol()
     mp_context->glGenBuffers(1, &bufCol);
 }
 
+void Drawable::generateID() {
+    IDbound = true;
+    mp_context->glGenBuffers(1, &bufID);
+}
+
+void Drawable::generateWeight() {
+    weightBound = true;
+    mp_context->glGenBuffers(1, &bufWeight);
+}
+
 bool Drawable::bindIdx()
 {
     if(idxBound) {
@@ -95,3 +107,18 @@ bool Drawable::bindCol()
     }
     return colBound;
 }
+
+bool Drawable::bindID() {
+    if (IDbound) {
+        mp_context->glBindBuffer(GL_ARRAY_BUFFER, bufID);
+    }
+    return IDbound;
+}
+
+bool Drawable::bindWeight() {
+    if (weightBound) {
+        mp_context->glBindBuffer(GL_ARRAY_BUFFER, bufWeight);
+    }
+    return weightBound;
+}
+

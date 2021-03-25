@@ -7,9 +7,9 @@
 
 ShaderProgram::ShaderProgram(OpenGLContext *context)
     : vertShader(), fragShader(), prog(),
-      attrPos(-1), attrNor(-1), attrCol(-1),
-      unifModel(-1), unifModelInvTr(-1), unifViewProj(-1), unifCamPos(-1),
-      context(context)
+      attrPos(-1), attrNor(-1), attrCol(-1), attrIDs(-1), attrWeight(-1),
+      unifModel(-1), unifModelInvTr(-1), unifViewProj(-1), unifCamPos(-1), unifBindMatrices(-1),
+      unifJointTransforms(-1) ,context(context)
 {}
 
 void ShaderProgram::create(const char *vertfile, const char *fragfile)
@@ -63,11 +63,15 @@ void ShaderProgram::create(const char *vertfile, const char *fragfile)
     attrPos = context->glGetAttribLocation(prog, "vs_Pos");
     attrNor = context->glGetAttribLocation(prog, "vs_Nor");
     attrCol = context->glGetAttribLocation(prog, "vs_Col");
+    attrIDs = context->glGetAttribLocation(prog, "vs_IDs");
+    attrWeight = context->glGetAttribLocation(prog, "vs_Weights");
 
     unifModel      = context->glGetUniformLocation(prog, "u_Model");
     unifModelInvTr = context->glGetUniformLocation(prog, "u_ModelInvTr");
     unifViewProj   = context->glGetUniformLocation(prog, "u_ViewProj");
     unifCamPos      = context->glGetUniformLocation(prog, "u_CamPos");
+    unifBindMatrices = context->glGetUniformLocation(prog, "u_bindMatrices");
+    unifJointTransforms = context->glGetUniformLocation(prog, "u_jointTransforms");
 }
 
 void ShaderProgram::useMe()
@@ -167,6 +171,15 @@ void ShaderProgram::draw(Drawable &d)
         context->glVertexAttribPointer(attrCol, 4, GL_FLOAT, false, 0, nullptr);
     }
 
+    if (attrIDs != -1 && d.bindID()) {
+        context->glEnableVertexAttribArray(attrIDs);
+        context->glVertexAttribPointer(attrIDs, 2, GL_FLOAT, false, 0, NULL);
+    }
+
+    if (attrWeight != -1 && d.bindWeight()) {
+        context->glEnableVertexAttribArray(attrWeight);
+        context->glVertexAttribIPointer(attrWeight, 2, GL_INT, 0, NULL);
+    }
     // Bind the index buffer and then draw shapes from it.
     // This invokes the shader program, which accesses the vertex buffers.
     d.bindIdx();
@@ -175,6 +188,8 @@ void ShaderProgram::draw(Drawable &d)
     if (attrPos != -1) context->glDisableVertexAttribArray(attrPos);
     if (attrNor != -1) context->glDisableVertexAttribArray(attrNor);
     if (attrCol != -1) context->glDisableVertexAttribArray(attrCol);
+    if (attrIDs != -1) context->glDisableVertexAttribArray(attrIDs);
+    if (attrWeight != -1) context->glDisableVertexAttribArray(attrWeight);
 
     context->printGLErrorLog();
 }

@@ -5,6 +5,7 @@
 #include "face.h"
 #include "vertex.h"
 #include "halfedge.h"
+#include "joint.h"
 
 namespace Ui {
 class MainWindow;
@@ -17,6 +18,8 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
+    void setChildren(Joint* parent, QJsonArray children);
+    void displayJointTransform();
     ~MainWindow();
 
 private slots:
@@ -47,6 +50,14 @@ public slots:
     void subdivide();
     void loadOBJ();
     void loadJSON();
+    void jointDisplay(QTreeWidgetItem* item);
+    void skin();
+    void rotateJointX();
+    void rotateJointY();
+    void rotateJointZ();
+    void changeJointX(double d);
+    void changeJointY(double d);
+    void changeJointZ(double d);
 
 private:
     Ui::MainWindow *ui;

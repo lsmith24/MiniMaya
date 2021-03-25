@@ -7,6 +7,13 @@
 #include <QSet>
 #include <QFileDialog>
 #include <math.h>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <glm/gtc/matrix_transform.hpp>
+#include <sstream>
+#include <iomanip>
+#include "math.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -37,6 +44,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->subdivide, SIGNAL(clicked(bool)), this, SLOT(subdivide()));
     connect(ui->load, SIGNAL(pressed()), this, SLOT(loadOBJ()));
     connect(ui->json, SIGNAL(pressed()), this, SLOT(loadJSON()));
+    connect(ui->treeWidget, SIGNAL(itemClicked(QTreeWidgetItem*, int)), this, SLOT(jointDisplay(QTreeWidgetItem*)));
+    connect(ui->skin, SIGNAL(pressed()), this, SLOT(skin()));
+    connect(ui->jointXPos, SIGNAL(valueChanged(double)), this, SLOT(changeJointX(double)));
+    connect(ui->jointYPos, SIGNAL(valueChanged(double)), this, SLOT(changeJointY(double)));
+    connect(ui->jointZPos, SIGNAL(valueChanged(double)), this, SLOT(changeJointZ(double)));
+    connect(ui->rotateX, SIGNAL(pressed()), this, SLOT(rotateJointX()));
+    connect(ui->rotateY, SIGNAL(pressed()), this, SLOT(rotateJointY()));
+    connect(ui->rotateZ, SIGNAL(pressed()), this, SLOT(rotateJointZ()));
 }
 
 MainWindow::~MainWindow()
@@ -53,6 +68,16 @@ void MainWindow::on_actionCamera_Controls_triggered()
 {
     CameraControlsHelp* c = new CameraControlsHelp();
     c->show();
+}
+
+void MainWindow::jointDisplay(QTreeWidgetItem* item) {
+    if (Joint *joint = dynamic_cast<Joint*>(item)) {
+        ui->treeWidget->setCurrentItem(item);
+        ui->mygl->curJoint = joint;
+        ui->mygl->m_jointDisplay.updateJoint(joint);
+        ui->mygl->m_jointDisplay.create();
+        ui->mygl->update();
+    }
 }
 
 void MainWindow::addFace(QListWidgetItem *f) {
@@ -333,7 +358,6 @@ void MainWindow::quadrangulate(Face *f, Vertex *centroid) {
     fromCentr->next = e;
     toCentr->vtx = centroid;
     fromCentr->vtx = startVtx;
-    std::cout << glm::to_string(startVtx->pos) << std::endl;
 
     toCentr->sym = firstSym;
     firstSym->sym = toCentr.get();
@@ -602,7 +626,260 @@ void MainWindow::loadOBJ() {
     ui->mygl->update();
 }
 
-void MainWindow::loadJSON() {
+void MainWindow::setChildren(Joint *parent, QJsonArray children) {
+    if (children.size() != 0) {
+        for (int i = 0; i < children.size(); i++) {
+            QJsonObject cur = children[i].toObject();
+            QString curName = cur["name"].toString();
+            QJsonArray curPos = cur["pos"].toArray();
+            QJsonArray curRot = cur["rot"].toArray();
+            QJsonArray curChildren = cur["children"].toArray();
+            glm::vec3 posVec = glm::vec3(float(curPos[0].toDouble()), float(curPos[1].toDouble()), float(curPos[2].toDouble()));
+            glm::vec3 rotVec = glm::vec3((float) curRot[1].toDouble(), (float) curRot[2].toDouble(), (float) curRot[3].toDouble());
+            glm::mat4 rot = glm::rotate(glm::mat4(), glm::radians((float) curRot.at(0).toDouble()), rotVec);
+            glm::quat q = glm::toQuat(rot);
 
+            //make joint
+            uPtr<Joint> newJoint = mkU<Joint>(ui->mygl, curName, parent, posVec, q);
+            ui->mygl->skeleton.push_back(std::move(newJoint));
+            uPtr<Joint> &newJ = ui->mygl->skeleton.back(); //to get new joint after std moving
+
+            //recurse
+            setChildren(newJ.get(), curChildren);
+        }
+    }
 }
 
+void MainWindow::loadJSON() {
+    QString filename = QFileDialog::getOpenFileName(0, QString("load json"), QString("../../"), tr("*.json"));
+    QFile file(filename);
+
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            j->destroy();
+        }
+        ui->mygl->skeleton = std::vector<uPtr<Joint>>(); //erase previous skeleton
+
+        //file reading
+        QString docStr = file.readAll();
+        file.close();
+        QJsonDocument document = QJsonDocument::fromJson(docStr.toUtf8());
+        QJsonObject docObj = document.object();
+        QJsonValue rootVal = docObj.value(QString("root"));
+        QJsonObject root = rootVal.toObject();
+
+        //get root node info
+        QString rootName = root["name"].toString();
+        QJsonArray rootPos = root["pos"].toArray();
+        QJsonArray rootRot = root["rot"].toArray();
+        QJsonArray children = root["children"].toArray();
+
+        //make vec from pos array
+        glm::vec3 posVec = glm::vec3(float(rootPos[0].toDouble()), float(rootPos[1].toDouble()), float(rootPos[2].toDouble()));
+        glm::quat q = glm::angleAxis(float(rootRot[0].toDouble()), glm::vec3(float(rootRot[1].toDouble()), float(rootRot[2].toDouble()), float(rootRot[3].toDouble())));
+
+        //make root joint
+        uPtr<Joint> rootJoint = mkU<Joint>(ui->mygl, rootName, nullptr, posVec, q);
+        ui->mygl->skeleton.push_back(std::move(rootJoint));
+        uPtr<Joint> &par = ui->mygl->skeleton.back();
+        ui->treeWidget->addTopLevelItem(par.get());
+
+        //recursively add children to root
+        setChildren(par.get(), children);
+    }
+
+    for (uPtr<Joint> &j : ui->mygl->skeleton) {
+        Joint *parent = j->parent;
+        ui->treeWidget->setCurrentItem(parent);
+        if (parent != nullptr) {
+            ui->treeWidget->currentItem()->addChild(j.get());
+            parent->children.insert(j.get());
+        }
+        j->create();
+        ui->mygl->update();
+    }
+}
+
+void MainWindow::skin() {
+    for (uPtr<Vertex> &vtx : ui->mygl->mesh.vertices) {
+        float min1 = HUGE_VALF;
+        float min2 = HUGE_VALF;
+
+        Joint *j1;
+        Joint *j2;
+
+        //first closest joint
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            glm::vec4 jointPos = j->getWorldPos();
+            glm::vec4 vtxPos = glm::vec4(vtx->pos, 1);
+            float dist = glm::distance(vtxPos, jointPos); //get distance between vertex and joint
+            if (dist < min1) { //update min if we found new min
+                j1 = j.get();
+                min1 = dist;
+            }
+        }
+        //second closest joint
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            if (j.get() != j1) {
+                glm::vec4 jointPos = j->getWorldPos();
+                glm::vec4 vtxPos = glm::vec4(vtx->pos, 1);
+                float dist = glm::distance(vtxPos, jointPos);
+                if (dist < min2) {
+                    j2 = j.get();
+                    min2 = dist;
+                }
+            }
+        }
+        //set influence for vertex
+        vtx->updateInfluence(j1, min1, j2, min2);
+    }
+    ui->mygl->alreadySkinned = true;
+    ui->mygl->setBind();
+    ui->mygl->jointTransform();
+    ui->mygl->mesh.destroy();
+    ui->mygl->mesh.create();
+    ui->mygl->update();
+}
+
+void MainWindow::rotateJointX() {
+    if (ui->mygl->m_jointDisplay.repJoint) {
+        Joint *cur = ui->mygl->m_jointDisplay.repJoint;
+        glm::quat q = cur->rotation;
+        q = glm::angleAxis(glm::radians(5.f), glm::vec3(1, 0, 0)) * q; //rotate by 5 deg
+        cur->rotation = q;
+        //recreate each joint
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            j->destroy();
+            j->create();
+        }
+        //update
+        ui->mygl->jointTransform();
+        displayJointTransform();
+        ui->mygl->m_jointDisplay.create();
+        ui->mygl->update();
+    }
+}
+
+void MainWindow::rotateJointY() {
+    if (ui->mygl->m_jointDisplay.repJoint) {
+        Joint *cur = ui->mygl->m_jointDisplay.repJoint;
+        glm::quat q = cur->rotation;
+        q = glm::angleAxis(glm::radians(5.f), glm::vec3(0, 1, 0)) * q;
+        cur->rotation = q;
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            j->destroy();
+            j->create();
+        }
+        ui->mygl->jointTransform();
+        displayJointTransform();
+        ui->mygl->m_jointDisplay.create();
+        ui->mygl->update();
+    }
+}
+
+void MainWindow::rotateJointZ() {
+    if (ui->mygl->m_jointDisplay.repJoint) {
+        Joint *cur = ui->mygl->m_jointDisplay.repJoint;
+        glm::quat q = cur->rotation;
+        q = glm::angleAxis(glm::radians(5.f), glm::vec3(0, 0, 1)) * q;
+        cur->rotation = q;
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            j->destroy();
+            j->create();
+        }
+        ui->mygl->jointTransform();
+        displayJointTransform();
+        ui->mygl->m_jointDisplay.create();
+        ui->mygl->update();
+    }
+}
+
+void MainWindow::changeJointX(double d) {
+    if (ui->mygl->m_jointDisplay.repJoint) {
+        Joint *cur = ui->mygl->m_jointDisplay.repJoint;
+        glm::vec4 world = cur->getWorldPos();
+        glm::vec4 local = glm::vec4(cur->pos, 1);
+        cur->pos = glm::vec3(local.x + d - world.x, local.y, local.z);
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            j->destroy();
+            j->create();
+        }
+        ui->mygl->jointTransform();
+        displayJointTransform();
+        ui->mygl->m_jointDisplay.create();
+        ui->mygl->update();
+    }
+}
+
+void MainWindow::changeJointY(double d) {
+    if (ui->mygl->m_jointDisplay.repJoint) {
+        Joint *cur = ui->mygl->m_jointDisplay.repJoint;
+        glm::vec4 world = cur->getWorldPos();
+        glm::vec4 local = glm::vec4(cur->pos, 1);
+        cur->pos = glm::vec3(local.x, local.y + d - world.y, local.z);
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            j->destroy();
+            j->create();
+        }
+        ui->mygl->jointTransform();
+        displayJointTransform();
+        ui->mygl->m_jointDisplay.create();
+        ui->mygl->update();
+    }
+}
+
+void MainWindow::changeJointZ(double d) {
+    if (ui->mygl->m_jointDisplay.repJoint) {
+        Joint *cur = ui->mygl->m_jointDisplay.repJoint;
+        glm::vec4 world = cur->getWorldPos();
+        glm::vec4 local = glm::vec4(cur->pos, 1);
+        cur->pos = glm::vec3(local.x, local.y, local.z + d - world.z);
+        for (uPtr<Joint> &j : ui->mygl->skeleton) {
+            j->destroy();
+            j->create();
+        }
+        ui->mygl->jointTransform();
+        ui->mygl->m_jointDisplay.create();
+        displayJointTransform();
+        ui->mygl->update();
+    }
+}
+
+void MainWindow::displayJointTransform() {
+    if (ui->mygl->m_jointDisplay.repJoint != nullptr) {
+        Joint *j = ui->mygl->m_jointDisplay.repJoint;
+        glm::quat q = j->rotation;
+        //get values to display
+        float wVal = acos(q.w) * 2.f;
+        float iVal = q.x / sin(wVal / 2.f);
+        float jVal = q.y / sin(wVal / 2.f);
+        float kVal = q.z / sin(wVal / 2.f);
+        float xVal = j->getWorldPos().x;
+        float yVal = j->getWorldPos().y;
+        float zVal = j->getWorldPos().z;
+        //make stream for each display
+        std::stringstream wStr;
+        std::stringstream iStr;
+        std::stringstream jStr;
+        std::stringstream kStr;
+        std::stringstream xStr;
+        std::stringstream yStr;
+        std::stringstream zStr;
+        //put values in streams
+        wStr << std::fixed << std::setprecision(3) << wVal;
+        iStr << std::fixed << std::setprecision(3) << iVal;
+        jStr << std::fixed << std::setprecision(3) << jVal;
+        kStr << std::fixed << std::setprecision(3) << kVal;
+        xStr << std::fixed << std::setprecision(3) << xVal;
+        yStr << std::fixed << std::setprecision(3) << yVal;
+        zStr << std::fixed << std::setprecision(3) << zVal;
+        //send streams to gui
+        ui->wDisplay->setText(QString::fromStdString(wStr.str()));
+        ui->iDisplay->setText(QString::fromStdString(iStr.str()));
+        ui->jDisplay->setText(QString::fromStdString(jStr.str()));
+        ui->kDisplay->setText(QString::fromStdString(kStr.str()));
+        ui->xDisplay->setText(QString::fromStdString(xStr.str()));
+        ui->yDisplay->setText(QString::fromStdString(yStr.str()));
+        ui->zDisplay->setText(QString::fromStdString(zStr.str()));
+    }
+}
