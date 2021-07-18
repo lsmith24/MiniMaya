@@ -1,1 +1,1 @@
-For the extra credit I added buttons so that if a vertex and joint are selected and you press the "Make Influence" button it will replace one of the joints that currently influences the selected vertex with the selelcted joint. The "Increase Influence" button increases the influence of the selected joint on the selected vertex by 0.1 if that joint is already in its influence list. I also am trying to display the influences of the joints but that part does not entirely work yet.
+
